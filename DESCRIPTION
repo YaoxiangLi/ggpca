@@ -1,0 +1,24 @@
+Package: ggpca
+Title: Publication-Ready PCA, t-SNE, and UMAP Plots
+Version: 0.1.2
+Authors@R: person('Yaoxiang', 'Li', email = 'liyaoxiang@outlook.com', role = c('cre', 'aut'))
+Description: Provides tools for creating publication-ready dimensionality reduction plots, including Principal Component Analysis (PCA), t-Distributed Stochastic Neighbor Embedding (t-SNE), and Uniform Manifold Approximation and Projection (UMAP). This package helps visualize high-dimensional data with options for custom labels, density plots, and faceting, using the 'ggplot2' framework Wickham (2016) <doi:10.1007/978-3-319-24277-4>.
+License: GPL-3
+Imports: 
+    config (>= 0.3.2),
+    golem (>= 0.4.1),
+    shiny (>= 1.8.1.1),
+    rlang,
+    Rtsne,
+    cowplot,
+    dplyr,
+    ggplot2,
+    umap
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
+Suggests: 
+    knitr,
+    tibble,
+    rmarkdown
+VignetteBuilder: knitr
