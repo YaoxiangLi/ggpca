@@ -218,3 +218,49 @@ ggpca <- function(data,
 
   return(p)
 }
+
+
+
+
+
+#' Process Missing Values in a Data Frame
+#'
+#' This function filters columns in a data frame based on a specified threshold for missing values and performs imputation on remaining non-metadata columns using half of the minimum value found in each column.
+#' Metadata columns are specified by the user and are exempt from filtering and imputation.
+#'
+#' @param data A data frame containing the data to be processed.
+#' @param missing_threshold A numeric value representing the percentage threshold of missing values which should lead to the removal of a column. Default is 25.
+#' @param metadata_cols A vector of either column names or indices that should be treated as metadata and thus exempt from missing value filtering and imputation. If NULL, no columns are treated as metadata.
+#' @return A data frame with filtered and imputed columns as necessary.
+#' @examples
+#' data <- data.frame(
+#'   A = c(1, 2, NA, 4),
+#'   B = c(NA, NA, NA, 4),
+#'   C = c(1, 2, 3, 4)
+#' )
+#' # Process missing values while ignoring column 'C' as metadata
+#' processed_data <- process_missing_value(data, missing_threshold = 50, metadata_cols = "C")
+#' @export
+process_missing_value <- function(data, missing_threshold = 25, metadata_cols = NULL) {
+  if (!is.null(metadata_cols) && is.numeric(metadata_cols)) {
+    metadata_cols <- names(data)[metadata_cols]
+  }
+
+  valid_cols <- sapply(names(data), function(col_name) {
+    missing_percent <- sum(is.na(data[[col_name]])) / nrow(data) * 100
+    missing_percent <= missing_threshold || col_name %in% metadata_cols
+  })
+
+  data <- data[, valid_cols]
+
+  non_metadata_cols <- names(data)[!names(data) %in% metadata_cols]
+  for (col in non_metadata_cols) {
+    if (any(is.na(data[[col]]))) {
+      min_val <- min(data[[col]], na.rm = TRUE)
+      data[[col]][is.na(data[[col]])] <- min_val / 2
+    }
+  }
+
+  return(data)
+}
+
