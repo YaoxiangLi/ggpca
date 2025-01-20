@@ -11,7 +11,7 @@ ggpca(
   scale = TRUE,
   x_pc = "PC1",
   y_pc = "PC2",
-  color_var = "Species",
+  color_var = NULL,
   ellipse = TRUE,
   ellipse_level = 0.9,
   ellipse_type = "norm",
@@ -43,9 +43,9 @@ ggpca(
 
 \item{y_pc}{Name of the principal component or dimension to plot on the y-axis (default: \code{"PC2"} for PCA).}
 
-\item{color_var}{Name of the column used to color points in the plot (default: \code{"Species"}). Should be a categorical variable in the data.}
+\item{color_var}{(Optional) Name of the column used to color points in the plot. If \code{NULL}, no color is applied. Supports both discrete and continuous variables. Default: \code{NULL}.}
 
-\item{ellipse}{Logical indicating whether to add confidence ellipses for groups (only supported for PCA; default: \code{TRUE}).}
+\item{ellipse}{Logical indicating whether to add confidence ellipses for groups (only supported for PCA and only if \code{color_var} is discrete; default: \code{TRUE}).}
 
 \item{ellipse_level}{Confidence level for ellipses (default: \code{0.9}).}
 
@@ -65,7 +65,7 @@ ggpca(
 
 \item{density_plot}{Controls whether to add density plots for the x, y, or both axes. Accepts one of \code{"none"}, \code{"x"}, \code{"y"}, or \code{"both"} (default: \code{"none"}).}
 
-\item{color_palette}{Name of the color palette to use for the plot. Supports \code{"Set1"}, \code{"Set2"}, etc. from \code{RColorBrewer} (default: \code{"Set1"}).}
+\item{color_palette}{Name of the color palette (used for discrete variables) to use for the plot. Supports \code{"Set1"}, \code{"Set2"}, etc. from \code{RColorBrewer} (default: \code{"Set1"}).}
 
 \item{xlab}{Custom x-axis label (default: \code{NULL}, will be auto-generated based on the data).}
 
@@ -118,4 +118,7 @@ p_tsne_time <- ggpca(
 )
 print(p_tsne_time)
 }
+}
+\author{
+Yaoxiang Li
 }
