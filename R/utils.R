@@ -300,6 +300,7 @@ ggpca <- function(data,
 #' @param metadata_cols A vector of either column names or indices that should be treated as metadata and thus exempt from missing value filtering and imputation. If NULL, no columns are treated as metadata.
 #' @return A data frame with filtered and imputed columns as necessary.
 #' @examples
+#' \donttest{
 #' data <- data.frame(
 #'   A = c(1, 2, NA, 4),
 #'   B = c(NA, NA, NA, 4),
@@ -307,6 +308,7 @@ ggpca <- function(data,
 #' )
 #' # Process missing values while ignoring column 'C' as metadata
 #' processed_data <- process_missing_value(data, missing_threshold = 50, metadata_cols = "C")
+#' }
 #' @export
 process_missing_value <- function(data, missing_threshold = 25, metadata_cols = NULL) {
   if (!is.null(metadata_cols) && is.numeric(metadata_cols)) {

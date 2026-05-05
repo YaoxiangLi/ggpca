@@ -5,5 +5,5 @@
 #' @import shiny
 #' @noRd
 app_server <- function(input, output, session) {
-  # Your application server logic
+  mod_pca_server("pca")
 }

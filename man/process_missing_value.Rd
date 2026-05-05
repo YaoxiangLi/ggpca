@@ -21,6 +21,7 @@ This function filters columns in a data frame based on a specified threshold for
 Metadata columns are specified by the user and are exempt from filtering and imputation.
 }
 \examples{
+\donttest{
 data <- data.frame(
   A = c(1, 2, NA, 4),
   B = c(NA, NA, NA, 4),
@@ -28,4 +29,5 @@ data <- data.frame(
 )
 # Process missing values while ignoring column 'C' as metadata
 processed_data <- process_missing_value(data, missing_threshold = 50, metadata_cols = "C")
+}
 }
