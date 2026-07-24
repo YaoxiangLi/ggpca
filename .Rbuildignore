@@ -6,4 +6,5 @@ dev_history.R
 $run_dev.*
 ^.here$
 ^\.github$
+^_pkgdown\.yml$
 ^agents\.md$
