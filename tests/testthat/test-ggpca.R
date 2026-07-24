@@ -69,3 +69,10 @@ test_that("requested dimensions must exist", {
     "available dimensions"
   )
 })
+
+test_that("the Shiny example dataset is installed with the package", {
+  example_path <- system.file("extdata", "example.csv", package = "ggpca")
+
+  expect_true(nzchar(example_path))
+  expect_true(file.exists(example_path))
+})

@@ -1,0 +1,11 @@
+default:
+  golem_name: ggpca
+  golem_version: 0.1.3
+  app_prod: no
+
+production:
+  app_prod: yes
+
+dev:
+  golem_wd: !expr golem::pkg_path()
+
