@@ -100,25 +100,68 @@ ggpca <- function(data,
                   title = NULL,
                   subtitle = NULL,
                   caption = NULL) {
-  # Validate mode input
+  data <- as.data.frame(data)
   mode <- match.arg(mode)
   density_plot <- match.arg(density_plot, choices = c("x", "y", "both", "none"))
 
-  # Determine if metadata_cols is numeric or character and subset accordingly
+  if (nrow(data) < 3) {
+    stop("data must contain at least three rows", call. = FALSE)
+  }
+
   if (is.numeric(metadata_cols)) {
+    if (any(!is.finite(metadata_cols)) ||
+        any(metadata_cols != as.integer(metadata_cols)) ||
+        any(metadata_cols < 1 | metadata_cols > ncol(data))) {
+      stop("numeric metadata_cols must contain valid column indices", call. = FALSE)
+    }
+    metadata_cols <- unique(as.integer(metadata_cols))
     metadata <- data[, metadata_cols, drop = FALSE]
-    features <- data[, -metadata_cols, drop = FALSE]
+    features <- if (length(metadata_cols) == 0) {
+      data
+    } else {
+      data[, -metadata_cols, drop = FALSE]
+    }
   } else if (is.character(metadata_cols)) {
+    missing_metadata <- setdiff(metadata_cols, names(data))
+    if (length(missing_metadata) > 0) {
+      stop(
+        "metadata_cols not found in data: ",
+        paste(missing_metadata, collapse = ", "),
+        call. = FALSE
+      )
+    }
+    metadata_cols <- unique(metadata_cols)
     metadata <- data[, metadata_cols, drop = FALSE]
     features <- data[, !names(data) %in% metadata_cols, drop = FALSE]
   } else {
-    stop("metadata_cols should be either a numeric vector or a character vector.")
+    stop(
+      "metadata_cols should be either a numeric vector or a character vector.",
+      call. = FALSE
+    )
   }
 
-  # Ensure features are numeric for PCA, t-SNE, or UMAP
   features <- dplyr::select_if(features, is.numeric)
+  if (ncol(features) < 2) {
+    stop("data must contain at least two numeric feature columns", call. = FALSE)
+  }
+  if (anyNA(features) || any(!vapply(features, function(x) all(is.finite(x)), logical(1)))) {
+    stop(
+      "numeric feature columns must not contain missing or non-finite values; ",
+      "use process_missing_value() first",
+      call. = FALSE
+    )
+  }
+  if (isTRUE(scale)) {
+    zero_variance <- vapply(features, function(x) stats::sd(x) == 0, logical(1))
+    if (any(zero_variance)) {
+      stop(
+        "cannot scale constant feature columns: ",
+        paste(names(features)[zero_variance], collapse = ", "),
+        call. = FALSE
+      )
+    }
+  }
 
-  # Perform dimensionality reduction
   explained_variance <- NULL
   if (mode == "pca") {
     pca <- stats::prcomp(features, scale. = scale)
@@ -126,10 +169,15 @@ ggpca <- function(data,
     colnames(scores) <- paste0("PC", seq_len(ncol(scores)))
 
     explained_variance <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
-    xlab <- if (is.null(xlab)) paste0(x_pc, " (", explained_variance[1], "% variance)") else xlab
-    ylab <- if (is.null(ylab)) paste0(y_pc, " (", explained_variance[2], "% variance)") else ylab
-
   } else if (mode == "tsne") {
+    if (!is.numeric(tsne_perplexity) || length(tsne_perplexity) != 1 ||
+        !is.finite(tsne_perplexity) || tsne_perplexity <= 0 ||
+        tsne_perplexity >= (nrow(features) - 1) / 3) {
+      stop(
+        "tsne_perplexity must be positive and smaller than (nrow(data) - 1) / 3",
+        call. = FALSE
+      )
+    }
     tsne_result <- Rtsne::Rtsne(as.matrix(features), perplexity = tsne_perplexity, check_duplicates = FALSE)
     scores <- as.data.frame(tsne_result$Y)
     colnames(scores) <- c("Dim1", "Dim2")
@@ -139,6 +187,13 @@ ggpca <- function(data,
     ylab <- if (is.null(ylab)) y_pc else ylab
 
   } else if (mode == "umap") {
+    if (!is.numeric(umap_n_neighbors) || length(umap_n_neighbors) != 1 ||
+        umap_n_neighbors < 2 || umap_n_neighbors >= nrow(features)) {
+      stop(
+        "umap_n_neighbors must be at least 2 and smaller than nrow(data)",
+        call. = FALSE
+      )
+    }
     umap_result <- umap::umap(as.matrix(features), n_neighbors = umap_n_neighbors)
     scores <- as.data.frame(umap_result$layout)
     colnames(scores) <- c("UMAP1", "UMAP2")
@@ -148,7 +203,28 @@ ggpca <- function(data,
     ylab <- if (is.null(ylab)) y_pc else ylab
   }
 
-  # Combine metadata with dimensionality reduction results
+  if (!x_pc %in% names(scores) || !y_pc %in% names(scores)) {
+    stop(
+      "x_pc and y_pc must name available dimensions: ",
+      paste(names(scores), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (mode == "pca") {
+    x_index <- match(x_pc, names(scores))
+    y_index <- match(y_pc, names(scores))
+    xlab <- if (is.null(xlab)) {
+      paste0(x_pc, " (", explained_variance[x_index], "% variance)")
+    } else {
+      xlab
+    }
+    ylab <- if (is.null(ylab)) {
+      paste0(y_pc, " (", explained_variance[y_index], "% variance)")
+    } else {
+      ylab
+    }
+  }
+
   plot_data <- dplyr::bind_cols(metadata, scores)
 
   # Set up base ggplot
@@ -311,20 +387,57 @@ ggpca <- function(data,
 #' }
 #' @export
 process_missing_value <- function(data, missing_threshold = 25, metadata_cols = NULL) {
-  if (!is.null(metadata_cols) && is.numeric(metadata_cols)) {
-    metadata_cols <- names(data)[metadata_cols]
+  data <- as.data.frame(data)
+  if (nrow(data) == 0) {
+    stop("data must contain at least one row", call. = FALSE)
+  }
+  if (!is.numeric(missing_threshold) || length(missing_threshold) != 1 ||
+      !is.finite(missing_threshold) ||
+      missing_threshold < 0 || missing_threshold > 100) {
+    stop("missing_threshold must be a single number from 0 to 100", call. = FALSE)
+  }
+
+  if (is.null(metadata_cols)) {
+    metadata_cols <- character()
+  } else if (is.numeric(metadata_cols)) {
+    if (any(!is.finite(metadata_cols)) ||
+        any(metadata_cols != as.integer(metadata_cols)) ||
+        any(metadata_cols < 1 | metadata_cols > ncol(data))) {
+      stop("numeric metadata_cols must contain valid column indices", call. = FALSE)
+    }
+    metadata_cols <- names(data)[unique(as.integer(metadata_cols))]
+  } else if (is.character(metadata_cols)) {
+    missing_metadata <- setdiff(metadata_cols, names(data))
+    if (length(missing_metadata) > 0) {
+      stop(
+        "metadata_cols not found in data: ",
+        paste(missing_metadata, collapse = ", "),
+        call. = FALSE
+      )
+    }
+  } else {
+    stop("metadata_cols must be NULL, numeric, or character", call. = FALSE)
   }
 
   valid_cols <- sapply(names(data), function(col_name) {
     missing_percent <- sum(is.na(data[[col_name]])) / nrow(data) * 100
-    missing_percent <= missing_threshold || col_name %in% metadata_cols
+    is_metadata <- col_name %in% metadata_cols
+    not_all_missing <- !all(is.na(data[[col_name]]))
+    is_metadata || (not_all_missing && missing_percent <= missing_threshold)
   })
 
-  data <- data[, valid_cols]
+  data <- data[, valid_cols, drop = FALSE]
 
   non_metadata_cols <- names(data)[!names(data) %in% metadata_cols]
   for (col in non_metadata_cols) {
     if (any(is.na(data[[col]]))) {
+      if (!is.numeric(data[[col]])) {
+        stop(
+          "non-metadata columns with missing values must be numeric: ",
+          col,
+          call. = FALSE
+        )
+      }
       min_val <- min(data[[col]], na.rm = TRUE)
       data[[col]][is.na(data[[col]])] <- min_val / 2
     }
@@ -332,4 +445,3 @@ process_missing_value <- function(data, missing_threshold = 25, metadata_cols = 
 
   return(data)
 }
-
