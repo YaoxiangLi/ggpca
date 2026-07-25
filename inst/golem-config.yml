@@ -1,6 +1,6 @@
 default:
   golem_name: ggpca
-  golem_version: 0.1.3
+  golem_version: 0.1.4
   app_prod: no
 
 production:

@@ -10,7 +10,6 @@
 #' @return No return value, called for side effects.
 #' @export
 #' @importFrom shiny shinyApp
-#' @importFrom golem with_golem_options
 run_app <- function(
     onStart = NULL,
     options = list(),
@@ -18,8 +17,21 @@ run_app <- function(
     uiPattern = "/",
     ...
 ) {
-  with_golem_options(
-    app = shinyApp(
+  required <- c("golem", "config")
+  missing <- required[
+    !vapply(required, requireNamespace, logical(1), quietly = TRUE)
+  ]
+  if (length(missing) > 0L) {
+    stop(
+      "The optional app requires: ",
+      paste(missing, collapse = ", "),
+      ". Install them before calling `run_app()`.",
+      call. = FALSE
+    )
+  }
+
+  golem::with_golem_options(
+    app = shiny::shinyApp(
       ui = app_ui,
       server = app_server,
       onStart = onStart,

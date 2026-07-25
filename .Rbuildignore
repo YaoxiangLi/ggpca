@@ -8,3 +8,5 @@ $run_dev.*
 ^\.github$
 ^_pkgdown\.yml$
 ^agents\.md$
+^.*\.Rcheck$
+^.*\.tar\.gz$

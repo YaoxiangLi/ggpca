@@ -11,6 +11,7 @@ permissions:
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
     strategy:
       fail-fast: false
       matrix:
@@ -18,6 +19,7 @@ jobs:
           - {os: windows-latest, r: release}
           - {os: macos-latest, r: release}
           - {os: ubuntu-latest, r: release}
+          - {os: ubuntu-latest, r: devel}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +33,6 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
       - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--no-manual", "--as-cran")'
+          build_args: '"--no-manual"'

@@ -35,10 +35,7 @@
 #' @importFrom ggplot2 ggplot aes geom_point theme_bw labs theme element_blank
 #' @importFrom ggplot2 element_text margin scale_color_brewer stat_ellipse
 #' @importFrom ggplot2 facet_grid geom_density coord_flip scale_color_gradient scale_color_gradient2
-#' @importFrom dplyr bind_cols select_if
 #' @importFrom cowplot insert_xaxis_grob insert_yaxis_grob ggdraw
-#' @importFrom Rtsne Rtsne
-#' @importFrom umap umap
 #' @importFrom rlang .data
 #'
 #' @author Yaoxiang Li
@@ -140,7 +137,7 @@ ggpca <- function(data,
     )
   }
 
-  features <- dplyr::select_if(features, is.numeric)
+  features <- features[vapply(features, is.numeric, logical(1))]
   if (ncol(features) < 2) {
     stop("data must contain at least two numeric feature columns", call. = FALSE)
   }
@@ -170,6 +167,12 @@ ggpca <- function(data,
 
     explained_variance <- round(100 * pca$sdev^2 / sum(pca$sdev^2), 1)
   } else if (mode == "tsne") {
+    if (!requireNamespace("Rtsne", quietly = TRUE)) {
+      stop(
+        "Install the optional 'Rtsne' package to use `mode = \"tsne\"`.",
+        call. = FALSE
+      )
+    }
     if (!is.numeric(tsne_perplexity) || length(tsne_perplexity) != 1 ||
         !is.finite(tsne_perplexity) || tsne_perplexity <= 0 ||
         tsne_perplexity >= (nrow(features) - 1) / 3) {
@@ -187,6 +190,12 @@ ggpca <- function(data,
     ylab <- if (is.null(ylab)) y_pc else ylab
 
   } else if (mode == "umap") {
+    if (!requireNamespace("umap", quietly = TRUE)) {
+      stop(
+        "Install the optional 'umap' package to use `mode = \"umap\"`.",
+        call. = FALSE
+      )
+    }
     if (!is.numeric(umap_n_neighbors) || length(umap_n_neighbors) != 1 ||
         umap_n_neighbors < 2 || umap_n_neighbors >= nrow(features)) {
       stop(
@@ -225,7 +234,7 @@ ggpca <- function(data,
     }
   }
 
-  plot_data <- dplyr::bind_cols(metadata, scores)
+  plot_data <- data.frame(metadata, scores, check.names = FALSE)
 
   # Set up base ggplot
   # If color_var is specified, we map color; otherwise, we map only x and y.
